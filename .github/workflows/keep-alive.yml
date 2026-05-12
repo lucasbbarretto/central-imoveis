@@ -1,0 +1,19 @@
+name: Keep Supabase Alive
+
+on:
+  schedule:
+    - cron: '0 13 * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            "https://ckherajvnmnuhylnbwwk.supabase.co/rest/v1/clientes?select=id&limit=1" \
+            -H "apikey: sb_publishable_Nme3TB6O-YmYNYVBMvH52Q_X7Em9dE8" \
+            -H "Authorization: Bearer sb_publishable_Nme3TB6O-YmYNYVBMvH52Q_X7Em9dE8")
+          echo "Status: $STATUS"
+          echo "Supabase pingado com sucesso!"
