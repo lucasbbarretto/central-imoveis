@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Imóveis Selecionados</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f0;color:#1a1a1a;min-height:100vh}
+.topbar{background:#185FA5;padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between}
+.topbar h1{font-size:16px;font-weight:600;color:#fff;display:flex;align-items:center;gap:8px}
+.topbar .sub{font-size:12px;color:rgba(255,255,255,.7)}
+.container{max-width:1000px;margin:0 auto;padding:24px 16px}
+.intro{background:#fff;border-radius:12px;padding:20px 24px;margin-bottom:24px;border:1px solid #e5e5e0}
+.intro h2{font-size:20px;font-weight:700;margin-bottom:4px}
+.intro p{font-size:14px;color:#666;margin-top:4px}
+.badge{display:inline-block;background:#e6f1fb;color:#185FA5;font-size:12px;font-weight:600;padding:3px 10px;border-radius:20px;margin-top:10px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+.card{background:#fff;border-radius:14px;overflow:hidden;border:1px solid #e5e5e0;transition:box-shadow .2s}
+.card:hover{box-shadow:0 4px 16px rgba(0,0,0,.1)}
+.card-img{width:100%;height:180px;background:#f0f0f0;display:flex;align-items:center;justify-content:center;font-size:40px;color:#ccc;position:relative;overflow:hidden}
+.card-img img{width:100%;height:100%;object-fit:cover;display:block}
+.status-badge{position:absolute;top:10px;right:10px;font-size:11px;padding:3px 10px;border-radius:20px;font-weight:600}
+.s-novo{background:#e6f1fb;color:#0C447C}
+.s-interesse{background:#EAF3DE;color:#27500A}
+.s-enviado{background:#FAEEDA;color:#633806}
+.card-body{padding:14px 16px}
+.card-preco{font-size:20px;font-weight:700;margin-bottom:4px}
+.card-end{font-size:13px;color:#666;margin-bottom:10px}
+.card-tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.tag{background:#f5f5f0;padding:3px 9px;border-radius:20px;font-size:12px;color:#555}
+.card-extra{font-size:12px;color:#666;margin-bottom:10px;line-height:1.6}
+.card-obs{font-size:12px;color:#777;font-style:italic;margin-bottom:12px;padding:8px 10px;background:#fafafa;border-radius:6px;border-left:3px solid #ddd}
+.btn-anuncio{display:inline-block;padding:8px 16px;background:#185FA5;color:#fff;border-radius:8px;font-size:13px;font-weight:500;text-decoration:none;margin-bottom:14px;transition:background .15s}
+.btn-anuncio:hover{background:#0C447C}
+.comentarios-section{border-top:1px solid #f0f0f0;padding-top:12px}
+.comentarios-title{font-size:11px;font-weight:600;color:#aaa;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px}
+.comentario-item{background:#f0f4ff;border-radius:6px;padding:8px 10px;margin-bottom:6px;font-size:12px;color:#333;border-left:3px solid #185FA5}
+.comentario-data{font-size:10px;color:#aaa;margin-top:3px}
+.comentario-form{display:flex;gap:6px;margin-top:8px}
+.comentario-form input{flex:1;padding:7px 10px;font-size:12px;border:1px solid #e0e0e0;border-radius:6px;outline:none}
+.comentario-form input:focus{border-color:#185FA5}
+.comentario-form button{padding:7px 14px;background:#185FA5;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;font-weight:500}
+.comentario-form button:hover{background:#0C447C}
+.empty{text-align:center;padding:60px 20px;color:#aaa;grid-column:1/-1}
+.empty h3{font-size:18px;margin-bottom:8px;color:#666}
+.loading{text-align:center;padding:80px;color:#aaa;font-size:14px}
+.error-page{text-align:center;padding:80px 20px}
+.error-page h2{font-size:24px;color:#c0392b;margin-bottom:12px}
+.error-page p{color:#666;font-size:14px;line-height:1.6}
+.footer{text-align:center;padding:32px;font-size:12px;color:#bbb;margin-top:8px}
+@media(max-width:600px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <h1>🏠 Imóveis Selecionados</h1>
+  <span class="sub" id="topbar-sub"></span>
+</div>
+<div class="container">
+  <div id="loading" class="loading">Carregando seus imóveis...</div>
+  <div id="error-page" class="error-page" style="display:none">
+    <h2>❌ Link inválido</h2>
+    <p>Este link não é válido ou expirou.<br>Entre em contato com sua consultora de imóveis.</p>
+  </div>
+  <div id="content" style="display:none">
+    <div class="intro">
+      <h2 id="cliente-nome">Olá!</h2>
+      <p id="cliente-perfil"></p>
+      <span class="badge" id="total-badge"></span>
+    </div>
+    <div class="grid" id="imoveis-grid"></div>
+  </div>
+</div>
+<div class="footer">Seleção preparada especialmente para você • Barretto's Imóveis</div>
+<script>
+const sb=supabase.createClient('https://ckherajvnmnuhylnbwwk.supabase.co','sb_publishable_Nme3TB6O-YmYNYVBMvH52Q_X7Em9dE8');
+const statusLabel={novo:'Novo',interesse:'Com interesse',enviado:'Enviado ao cliente'};
+const statusClass={novo:'s-novo',interesse:'s-interesse',enviado:'s-enviado'};
+const platIcon={'ZAP Imóveis':'🔍','QuintoAndar':'🏠','Viva Real':'🏡','OLX':'📋','Imovelweb':'🔎','Imobiliária':'🏢','Outro':'📌'};
+const fmtPreco=v=>v?'R$ '+Number(v).toLocaleString('pt-BR'):'—';
+const fmtData=d=>new Date(d).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+const params=new URLSearchParams(location.search);
+const clienteId=params.get('id');
+
+async function init(){
+  if(!clienteId){mostrarErro();return;}
+  const{data:clientes,error:errC}=await sb.from('clientes').select('*').eq('id',clienteId).limit(1);
+  if(errC||!clientes?.length){mostrarErro();return;}
+  const cliente=clientes[0];
+  document.title='Imóveis para '+cliente.nome;
+  document.getElementById('topbar-sub').textContent='Para: '+cliente.nome;
+  document.getElementById('cliente-nome').textContent='Olá, '+cliente.nome+'! 👋';
+  if(cliente.perfil) document.getElementById('cliente-perfil').textContent=cliente.perfil;
+  const{data:imoveis,error:errI}=await sb.from('imoveis').select('*')
+    .eq('cliente_id',clienteId).neq('status','descartado').order('criado_em',{ascending:false});
+  if(errI){mostrarErro();return;}
+  document.getElementById('total-badge').textContent=imoveis.length+' imóvel'+(imoveis.length!==1?'s':'')+' selecionado'+(imoveis.length!==1?'s':'');
+  let comentariosMap={};
+  if(imoveis.length>0){
+    const{data:comms}=await sb.from('comentarios').select('*').eq('cliente_id',clienteId).order('criado_em',{ascending:true});
+    (comms||[]).forEach(c=>{if(!comentariosMap[c.imovel_id])comentariosMap[c.imovel_id]=[];comentariosMap[c.imovel_id].push(c);});
+  }
+  document.getElementById('loading').style.display='none';
+  document.getElementById('content').style.display='block';
+  if(!imoveis.length){
+    document.getElementById('imoveis-grid').innerHTML='<div class="empty"><h3>Nenhum imóvel ainda</h3><p>Em breve sua consultora irá adicionar imóveis aqui.</p></div>';
+    return;
+  }
+  renderImoveis(imoveis,comentariosMap);
+}
+
+function renderImoveis(imoveis,comentariosMap){
+  const grid=document.getElementById('imoveis-grid');
+  grid.innerHTML=imoveis.map(i=>{
+    const comms=comentariosMap[i.id]||[];
+    const commsHTML=comms.map(c=>`<div class="comentario-item">${c.texto}<div class="comentario-data">${fmtData(c.criado_em)}</div></div>`).join('');
+    const extra=[i.endereco_completo?'📍 '+i.endereco_completo:'',i.proprietario?'👤 '+i.proprietario+(i.telefone_proprietario?' · '+i.telefone_proprietario:''):''].filter(Boolean).join('<br>');
+    return `<div class="card">
+      <div class="card-img">
+        ${i.foto?`<img src="${i.foto}" onerror="this.style.display='none'" alt="">`:`<span>${platIcon[i.plataforma]||'🏠'}</span>`}
+        ${i.status&&i.status!=='descartado'?`<span class="status-badge ${statusClass[i.status]||'s-novo'}">${statusLabel[i.status]||i.status}</span>`:''}
+      </div>
+      <div class="card-body">
+        <div class="card-preco">${fmtPreco(i.preco)}</div>
+        <div class="card-end">${i.endereco||'Endereço não informado'}</div>
+        <div class="card-tags">
+          ${i.area?`<span class="tag">📐 ${i.area}m²</span>`:''}
+          ${i.quartos?`<span class="tag">🛏 ${i.quartos} qto${i.quartos>1?'s':''}</span>`:''}
+          ${i.vagas?`<span class="tag">🚗 ${i.vagas} vaga${i.vagas>1?'s':''}</span>`:''}
+          <span class="tag">${i.plataforma||'—'}</span>
+        </div>
+        ${extra?`<div class="card-extra">${extra}</div>`:''}
+        ${i.observacoes?`<div class="card-obs">${i.observacoes}</div>`:''}
+        ${i.link?`<a href="${i.link}" class="btn-anuncio" target="_blank" rel="noopener">Ver anúncio completo ↗</a>`:''}
+        <div class="comentarios-section">
+          <div class="comentarios-title">💬 Seus comentários</div>
+          <div id="comms-${i.id}">${commsHTML||'<div style="font-size:12px;color:#bbb;margin-bottom:6px">Nenhum comentário ainda.</div>'}</div>
+          <div class="comentario-form">
+            <input type="text" id="input-${i.id}" placeholder="O que achou deste imóvel?" maxlength="300">
+            <button onclick="enviarComentario('${i.id}')">Enviar</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function enviarComentario(imovelId){
+  const input=document.getElementById('input-'+imovelId);
+  const texto=input.value.trim();
+  if(!texto)return;
+  input.disabled=true;
+  const{data,error}=await sb.from('comentarios').insert({imovel_id:imovelId,cliente_id:clienteId,texto}).select().single();
+  if(!error&&data){
+    input.value='';
+    const div=document.getElementById('comms-'+imovelId);
+    const semMsg=div.querySelector('div[style]');
+    if(semMsg) semMsg.remove();
+    div.innerHTML+=`<div class="comentario-item">${data.texto}<div class="comentario-data">${fmtData(data.criado_em)}</div></div>`;
+  }
+  input.disabled=false;input.focus();
+}
+
+function mostrarErro(){
+  document.getElementById('loading').style.display='none';
+  document.getElementById('error-page').style.display='block';
+}
+
+init();
+</script>
+</body>
+</html>
