@@ -2,7 +2,9 @@ name: Keep Supabase Alive
 
 on:
   schedule:
-    - cron: '0 13 * * *'
+    - cron: '0 10 * * *'
+  push:
+    branches: [main]
   workflow_dispatch:
 
 jobs:
@@ -15,5 +17,10 @@ jobs:
             "https://ckherajvnmnuhylnbwwk.supabase.co/rest/v1/clientes?select=id&limit=1" \
             -H "apikey: sb_publishable_Nme3TB6O-YmYNYVBMvH52Q_X7Em9dE8" \
             -H "Authorization: Bearer sb_publishable_Nme3TB6O-YmYNYVBMvH52Q_X7Em9dE8")
-          echo "Status: $STATUS"
-          echo "Supabase pingado com sucesso!"
+          echo "Status HTTP: $STATUS"
+          if [ "$STATUS" = "200" ]; then
+            echo "Supabase ativo!"
+          else
+            echo "Erro: status $STATUS"
+            exit 1
+          fi
