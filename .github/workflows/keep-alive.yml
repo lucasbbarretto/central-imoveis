@@ -13,14 +13,8 @@ jobs:
     steps:
       - name: Ping Supabase
         run: |
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+          curl -f \
             "https://ckherajvnmnuhylnbwwk.supabase.co/rest/v1/clientes?select=id&limit=1" \
             -H "apikey: sb_publishable_Nme3TB6O-YmYNYVBMvH52Q_X7Em9dE8" \
-            -H "Authorization: Bearer sb_publishable_Nme3TB6O-YmYNYVBMvH52Q_X7Em9dE8")
-          echo "Status HTTP: $STATUS"
-          if [ "$STATUS" = "200" ]; then
-            echo "Supabase ativo!"
-          else
-            echo "Erro: status $STATUS"
-            exit 1
-          fi
+            -H "Authorization: Bearer sb_publishable_Nme3TB6O-YmYNYVBMvH52Q_X7Em9dE8"
+          echo "Supabase pingado!"
