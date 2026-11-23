@@ -2,6 +2,7 @@ name: Keep Supabase Alive
 on:
   schedule:
     - cron: '0 10 * * *'
+    - cron: '0 22 * * *'
   push:
     branches: [main]
   workflow_dispatch:
@@ -11,12 +12,17 @@ jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Ping Supabase
+      - name: Write heartbeat to Supabase
         run: |
-          curl -f \
-            "https://ckherajvnmnuhylnbwwk.supabase.co/rest/v1/clientes?select=id&limit=1" \
-            -H "apikey: sb_publishable_Nme3TB6O-YmYNYVBMvH52Q_X7Em9dE8" \
-            -H "Authorization: Bearer sb_publishable_Nme3TB6O-YmYNYVBMvH52Q_X7Em9dE8"
+          KEY="sb_publishable_Nme3TB6O-YmYNYVBMvH52Q_X7Em9dE8"
+          URL="https://ckherajvnmnuhylnbwwk.supabase.co/rest/v1"
+          curl -f -X POST "$URL/keepalive?on_conflict=id" \
+            -H "apikey: $KEY" -H "Authorization: Bearer $KEY" \
+            -H "Content-Type: application/json" \
+            -H "Prefer: resolution=merge-duplicates" \
+            -d "{\"id\":1,\"last_ping\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}"
+          curl -f "$URL/clientes?select=id&limit=1" -H "apikey: $KEY" -H "Authorization: Bearer $KEY"
+          curl -f "$URL/imoveis?select=id&limit=1" -H "apikey: $KEY" -H "Authorization: Bearer $KEY"
           echo "Supabase pingado!"
       - name: Keep workflow active
         env:
